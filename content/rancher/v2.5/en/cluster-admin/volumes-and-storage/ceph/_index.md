@@ -97,6 +97,11 @@ csiConfig:
 provisioner:
   name: provisioner
   replicaCount: 2
+    
+# For RKE2 this must be true
+# https://kubernetes.io/docs/concepts/policy/pod-security-policy/
+podSecurityPolicy:
+  enabled: true
 ```
 
 Make sure the ceph monitors are reachable from the RKE2 cluster, for example, by ping.
@@ -106,6 +111,21 @@ kubectl create namespace ceph-csi-rbd
 helm install --namespace ceph-csi-rbd ceph-csi-rbd ceph-csi/ceph-csi-rbd --values ceph-csi-rbd-values.yaml
 kubectl rollout status deployment ceph-csi-rbd-provisioner -n ceph-csi-rbd
 helm status ceph-csi-rbd -n ceph-csi-rbd
+```
+Then edit the role created by the chart and add the configuration to allow the use of PSP.
+```
+kubectl edit clusterrole ceph-csi-rbd-provisioner
+```
+add at the end
+```
+- apiGroups:
+  - policy
+  resourceNames:
+  - ceph-csi-rbd-nodeplugin
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
 ```
 
 in case you'd like to modify the configuration directly via Helm, you may adapt the `ceph-csi-rbd-values.yaml` file and call:
